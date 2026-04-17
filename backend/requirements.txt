@@ -1,7 +1,0 @@
-fastapi==0.115.6
-uvicorn[standard]==0.34.0
-vaderSentiment==3.3.2
-NorenRestApiPy==0.0.22
-pyotp==2.9.0
-requests==2.32.3
-websocket-client==1.8.0

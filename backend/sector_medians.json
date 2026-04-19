@@ -1,0 +1,10 @@
+{
+  "Technology": {"sales_cagr": 16, "profit_cagr": 18, "roce": 28, "roe": 22, "debt_equity": 0.15, "pe": 38, "forward_pe": 30},
+  "Financials": {"sales_cagr": 14, "profit_cagr": 16, "roce": 10, "roe": 15, "roa": 1.2, "nim": 3.8, "debt_equity": 5.0, "pe": 18, "pb": 2.0},
+  "Power": {"sales_cagr": 12, "profit_cagr": 14, "roce": 13, "roe": 14, "debt_equity": 1.4, "pe": 24, "forward_pe": 20},
+  "Renewable Energy": {"sales_cagr": 18, "profit_cagr": 20, "roce": 12, "roe": 14, "debt_equity": 1.6, "pe": 42, "forward_pe": 34},
+  "Industrials": {"sales_cagr": 14, "profit_cagr": 16, "roce": 18, "roe": 17, "debt_equity": 0.7, "pe": 34, "forward_pe": 28},
+  "Manufacturing": {"sales_cagr": 13, "profit_cagr": 15, "roce": 16, "roe": 16, "debt_equity": 0.8, "pe": 30, "forward_pe": 25},
+  "Diversified": {"sales_cagr": 12, "profit_cagr": 14, "roce": 15, "roe": 15, "debt_equity": 0.9, "pe": 28, "forward_pe": 23},
+  "Unclassified": {"sales_cagr": 12, "profit_cagr": 14, "roce": 15, "roe": 15, "debt_equity": 0.9, "pe": 28, "forward_pe": 23}
+}

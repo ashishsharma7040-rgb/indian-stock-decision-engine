@@ -353,6 +353,44 @@ def business_data_quality(fundamentals: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def enhanced_data_quality_check(
+    bars: list[dict[str, Any]],
+    fundamentals: dict[str, Any],
+    corporate_actions_applied: bool = False,
+) -> dict[str, Any]:
+    issues: list[str] = []
+    warnings: list[str] = []
+    clean_bars = remove_weekend_bars(bars)
+    if len(clean_bars) < 60:
+        issues.append(f"Insufficient price history: {len(clean_bars)} bars, need at least 60")
+    elif len(clean_bars) < 200:
+        warnings.append(f"Limited price history: {len(clean_bars)} bars, 200 preferred for 200 DMA and backtests")
+
+    required = ["sales_cagr", "profit_cagr", "roce", "debt_equity"]
+    missing = [field for field in required if fundamentals.get(field) is None]
+    if len(missing) >= 3:
+        issues.append(f"Core fundamentals missing: {', '.join(missing)}")
+    elif missing:
+        warnings.append(f"Core fundamentals missing: {', '.join(missing)}")
+
+    sources = {str(bar.get("source") or bar.get("data_source") or "unknown") for bar in clean_bars[-20:]}
+    official = any("NSE" in source or "nse" in source for source in sources)
+    if sources and not official and any("Yahoo" in source for source in sources):
+        warnings.append("Using Yahoo chart data; official NSE bhavcopy was unavailable for recent bars")
+    if not corporate_actions_applied:
+        warnings.append("Corporate-action adjustment not confirmed for this price series")
+
+    completeness = max(0, min(100, 100 - len(issues) * 20 - len(warnings) * 5))
+    return {
+        "pass": not issues,
+        "completeness_pct": completeness,
+        "issues": issues,
+        "warnings": warnings,
+        "recent_sources": sorted(sources),
+        "corporate_actions_applied": corporate_actions_applied,
+    }
+
+
 def days_until_date(raw: Any) -> int | None:
     if not raw:
         return None
@@ -724,6 +762,30 @@ def relative_strength(
     return {"pct": round(diff, 2), "state": state}
 
 
+def compute_rs_rating_nifty500(
+    stock_bars: list[dict[str, Any]],
+    nifty500_bars: list[dict[str, Any]] | None,
+    lookback: int = 126,
+) -> int:
+    """Simple Nifty 500-relative RS fallback when universe percentiles are unavailable."""
+    if not nifty500_bars or len(stock_bars) < lookback or len(nifty500_bars) < lookback:
+        return 50
+    stock_return = pct_distance(float(stock_bars[-1]["close"]), float(stock_bars[-lookback]["close"]))
+    index_return = pct_distance(float(nifty500_bars[-1]["close"]), float(nifty500_bars[-lookback]["close"]))
+    relative_return = stock_return - index_return
+    if relative_return >= 15:
+        return 90
+    if relative_return >= 8:
+        return 75
+    if relative_return >= 2:
+        return 60
+    if relative_return >= -2:
+        return 50
+    if relative_return >= -8:
+        return 35
+    return 20
+
+
 def daily_returns(bars: list[dict[str, Any]]) -> list[float]:
     closes = [float(bar["close"]) for bar in bars if to_float(bar.get("close")) is not None]
     returns: list[float] = []
@@ -975,6 +1037,8 @@ def technical_strength_score(
     breakout_slow = current > slow_breakout
     rs = relative_strength(working_bars, working_benchmark, profile["rs_lookback"])
     rs_rating = event_context.get("rs_rating") if event_context else None
+    if rs_rating is None:
+        rs_rating = compute_rs_rating_nifty500(working_bars, working_benchmark, lookback=min(126, max(40, len(working_bars) - 1)))
     base_quality = base_quality_score(working_bars, profile["breakout_slow"], current)
     vcp = vcp_pattern_score(working_bars, profile["breakout_slow"])
     keltner_upper = fast_ma + 2 * atr14
@@ -1505,6 +1569,11 @@ def final_decision(
     )
     risk = risk_penalty(fundamentals, event_result, technical, market_result, business.get("forensic_quality"))
     valuation = business["valuation_score"]
+    price_data_quality = enhanced_data_quality_check(
+        bars,
+        fundamentals,
+        bool(company.get("corporate_actions_applied") or company.get("data_quality", {}).get("corporate_actions_applied")),
+    )
     weekly_weights = {
         "technical": 0.28,
         "events": 0.15,
@@ -1547,7 +1616,7 @@ def final_decision(
         "where_am_i_wrong_defined": risk["score"] <= 35 and bool(technical.get("entry")),
     }
     data_quality = business.get("data_quality", {})
-    data_complete_enough = float(data_quality.get("completeness_pct", 0) or 0) >= 40
+    data_complete_enough = float(data_quality.get("completeness_pct", 0) or 0) >= 40 and bool(price_data_quality.get("pass"))
     forensic_clean = not bool(business.get("forensic_quality", {}).get("hard_fail"))
     tech_indicators = technical.get("indicators", {})
     idio_score = float(tech_indicators.get("idiosyncratic_momentum", {}).get("score", 0) or 0)
@@ -1590,7 +1659,7 @@ def final_decision(
     if not rubber_band_ok:
         failed_gates.append("rubber_band_overextension_limit")
     if not data_complete_enough:
-        failed_gates.append("data_completeness_below_40pct")
+        failed_gates.append("data_quality_or_completeness_failed")
     if not forensic_clean:
         failed_gates.append("forensic_earnings_quality_fail")
     if not idiosyncratic_ok:
@@ -1662,7 +1731,9 @@ def final_decision(
             "min_completeness_pct": 40,
             "actual_completeness_pct": data_quality.get("completeness_pct"),
             "missing_fields": data_quality.get("missing_fields", []),
-            "warning": "Blocked from candidate status because fundamentals are less than 40 percent complete" if not data_complete_enough else None,
+            "price_data_quality": price_data_quality,
+            "corporate_actions_applied": price_data_quality.get("corporate_actions_applied"),
+            "warning": "Blocked from candidate status because fundamentals/price data quality did not pass" if not data_complete_enough else None,
         },
         "forensic_gate": {
             "pass": forensic_clean,

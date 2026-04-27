@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Indian Stock Decision Engine</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="commandPalette" class="command-palette hidden" role="dialog" aria-label="Search NSE stocks">
+    <div class="palette-header">
+      <input id="globalSearchInput" type="search" placeholder="Search NSE symbol or company name. Esc closes." autocomplete="off">
+    </div>
+    <div id="searchResults" class="search-results"></div>
+  </div>
+
+  <div id="settingsModal" class="settings-modal hidden" role="dialog" aria-label="Settings and connection health">
+    <div class="settings-backdrop" data-close-settings="1"></div>
+    <div class="settings-panel">
+      <div class="settings-head">
+        <div>
+          <div class="section-kicker">Connection Health</div>
+          <h2>Settings & Diagnostics</h2>
+        </div>
+        <button class="icon-btn" id="closeSettingsBtn" type="button" title="Close settings">X</button>
+      </div>
+      <div id="settingsBody" class="settings-body"></div>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">IS</span>
+      <span class="brand-copy">
+        <strong>Indian Stock Decision Engine</strong>
+        <em>Decision engine, not prediction app</em>
+      </span>
+    </div>
+    <div class="market-strip" id="marketStrip"></div>
+    <div class="top-actions">
+      <button class="search-trigger" id="commandSearchBtn" type="button">Ctrl K&nbsp;&nbsp;Search NSE</button>
+      <span id="liveStatusPill" class="status-chip blue">Waiting</span>
+      <span class="freshness-dot stale" id="freshnessDot" title="Waiting for live refresh"></span>
+      <button class="btn" id="settingsBtn" type="button">Settings</button>
+      <button class="icon-btn" id="topHomeBtn" type="button" title="Home">H</button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <div>
+          <div class="section-kicker">Universe</div>
+          <strong id="universeCount">0 names</strong>
+        </div>
+        <button class="btn" id="homeBtn">Home</button>
+      </div>
+      <input class="input" id="searchInput" type="search" placeholder="Ctrl+K: search focus list or all NSE">
+      <div class="filter-row">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="triggered">Triggered</button>
+        <button class="filter-btn" data-filter="breakout">Near Breakout</button>
+        <button class="filter-btn" data-filter="short">Short Term</button>
+        <button class="filter-btn" data-filter="long">Long Term</button>
+        <button class="filter-btn" data-filter="watchlist">Watchlist</button>
+        <button class="filter-btn" data-filter="avoid">Avoid</button>
+        <button class="filter-btn" data-filter="dataissue">Data Issue</button>
+      </div>
+      <div class="stock-list" id="stockList"></div>
+    </aside>
+
+    <section class="workspace">
+      <div id="offlineNotice" class="notice hidden"></div>
+      <section id="homeView"></section>
+      <section id="stockView" class="hidden"></section>
+    </section>
+  </main>
+
+  <script src="./demo-data.js"></script>
+  <script src="./config.js"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
